@@ -11,6 +11,7 @@ import java.util.ArrayList;
 public class FileManager {
     private static final String SEPARATOR = "=";
     private static final String FILE_PATH = "C:\\Teste\\Configuracao\\config.txt";
+    private static final String FILE_INVALID_PATH = "C:\\Teste\\Configuracao\\invalid_header.txt";
 
     public void createDirectories() {
         createDirectory("C:\\Teste");
@@ -30,12 +31,21 @@ public class FileManager {
         createDirectories();
         String processado = "Processado" + SEPARATOR + "C:\\Teste\\Processado\n";
         String naoProcessado = "Não Processado" + SEPARATOR + "C:\\Teste\\NaoProcessado";
+        String headerInvalido = "sdfhsdfhsdfhsdhfhdsfhj";
+        
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(FILE_PATH))) {
             bw.write(processado);
             bw.write(naoProcessado);
-            System.out.println("Arquivo de configuração criado com rotas padrão.");
+            System.out.println("Arquivo de configuração criado com rota padrão.");
         } catch (IOException e) {
-            System.out.println("Erro ao criar rotas de arquivos: " + e.getMessage());
+            System.out.println("Erro ao criar rota de arquivo: " + e.getMessage());
+        }
+        
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter(FILE_INVALID_PATH))) {
+        	bw.write(headerInvalido);
+        	System.out.println("Arquivo de Headers inválidos criado com rota padrão.");
+        } catch (IOException e) {
+        	System.out.println("Erro ao criar rota de arquivo: " + e.getMessage());
         }
     }
 
