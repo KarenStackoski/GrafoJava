@@ -70,6 +70,7 @@ public class GrafoManager {
             if (header == null || !isHeaderValid(header)) {
                 System.out.println("Número total de nós inválido. Arquivo deve ser movido para a pasta de Não Processados.");
                 // Mover o arquivo para a pasta Não Processados
+                br.close();
                 new FileManager().moveFileToNaoProcessado(filePath);
                 return;
             }
