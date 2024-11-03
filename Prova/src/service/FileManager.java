@@ -1,17 +1,12 @@
 package service;
 
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
-import java.nio.channels.FileChannel;
-import java.nio.channels.FileLock;
+import java.nio.file.*;
 import java.util.ArrayList;
 
 public class FileManager {
     private static final String SEPARATOR = "=";
     private static final String FILE_PATH = "C:\\Teste\\Configuracao\\config.txt";
-    private static final String FILE_INVALID_PATH = "C:\\Teste\\Configuracao\\invalid_header.txt";
 
     public void createDirectories() {
         createDirectory("C:\\Teste");
@@ -31,7 +26,6 @@ public class FileManager {
         createDirectories();
         String processado = "Processado" + SEPARATOR + "C:\\Teste\\Processado\n";
         String naoProcessado = "Não Processado" + SEPARATOR + "C:\\Teste\\NaoProcessado";
-        String headerInvalido = "sdfhsdfhsdfhsdhfhdsfhj";
         
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(FILE_PATH))) {
             bw.write(processado);
@@ -39,13 +33,6 @@ public class FileManager {
             System.out.println("Arquivo de configuração criado com rota padrão.");
         } catch (IOException e) {
             System.out.println("Erro ao criar rota de arquivo: " + e.getMessage());
-        }
-        
-        try (BufferedWriter bw = new BufferedWriter(new FileWriter(FILE_INVALID_PATH))) {
-        	bw.write(headerInvalido);
-        	System.out.println("Arquivo de Headers inválidos criado com rota padrão.");
-        } catch (IOException e) {
-        	System.out.println("Erro ao criar rota de arquivo: " + e.getMessage());
         }
     }
 
@@ -56,6 +43,7 @@ public class FileManager {
             createFileRoutes();
             return;
         }
+
         ArrayList<String> linhas = new ArrayList<>();
         try (BufferedReader br = new BufferedReader(new FileReader(FILE_PATH))) {
             String line = br.readLine();
@@ -64,15 +52,18 @@ public class FileManager {
                 createFileRoutes();
                 return;
             }
+
             boolean validConfig = true;
             do {
                 linhas.add(line);
-                if (!validateLine(line)) {
-                    System.out.println("Configuração inválida: " + line);
+                String validationResult = validateLine(line);
+                if (!validationResult.equals("Válido")) {
+                    System.out.println("Configuração inválida: " + validationResult);
                     validConfig = false;
                 }
                 line = br.readLine();
             } while (line != null);
+
             if (validConfig) {
                 System.out.println("Configuração válida. Linhas carregadas: " + linhas.size());
             } else {
@@ -84,119 +75,74 @@ public class FileManager {
         }
     }
 
-    private boolean validateLine(String line) {
+    private String validateLine(String line) {
         if (line.trim().isEmpty() || !line.contains(SEPARATOR)) {
-            return false;
+            return "Linha vazia ou sem separador.";
         }
         String[] parts = line.split(SEPARATOR);
         if (parts.length != 2) {
-            return false;
+            return "Número incorreto de partes na linha.";
         }
         String key = parts[0].trim();
         String value = parts[1].trim();
-        return (key.equals("Processado") && value.equals("C:\\Teste\\Processado")) ||
-               (key.equals("Não Processado") && value.equals("C:\\Teste\\NaoProcessado"));
+        if (key.equals("Processado") && !value.equals("C:\\Teste\\Processado")) {
+            return "Caminho para 'Processado' é inválido.";
+        }
+        if (key.equals("Não Processado") && !value.equals("C:\\Teste\\NaoProcessado")) {
+            return "Caminho para 'Não Processado' é inválido.";
+        }
+        return "Válido";
     }
 
-    public void processHeader(String filePath) {
-        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
+    public void processRouteFiles() {
+        // Implementar a lógica para processar os arquivos de rota
+        File folder = new File("C:\\Teste");
+        File[] files = folder.listFiles((dir, name) -> name.matches("rota\\d{2}\\.txt"));
+        
+        if (files != null) {
+            for (File file : files) {
+                validateRouteFile(file);
+            }
+        }
+    }
+
+    private void validateRouteFile(File file) {
+        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
             String headerLine = br.readLine();
-            if (!isValidHeader(headerLine)) {
-                System.out.println("Número total de nós inválido. Arquivo deve ser movido para a pasta de Não Processados.");
-                br.close(); // Fecha o BufferedReader antes de mover o arquivo
-                moveFileToNaoProcessado(filePath); // Mova o arquivo para a pasta de não processados
+            if (headerLine == null || !isValidHeader(headerLine)) {
+                System.out.println(file.getName() + " é inválido.");
             } else {
-                System.out.println("Cabeçalho válido. Processando arquivo...");
+                System.out.println(file.getName() + " é válido.");
             }
         } catch (IOException e) {
-            System.out.println("Erro ao processar o cabeçalho: " + e.getMessage());
+            System.out.println("Erro ao processar o arquivo " + file.getName() + ": " + e.getMessage());
         }
     }
 
     private boolean isValidHeader(String headerLine) {
-        if (headerLine == null || !headerLine.startsWith("NN=")) {
-            return false;
+        return headerLine != null && headerLine.matches("00\\d{2}\\d{5}"); // Exemplo de cabeçalho válido
+    }
+
+    // Métodos para mover arquivos
+    public void moveToProcessed(File file) {
+        moveFile(file, "C:\\Teste\\Processado");
+    }
+
+    public void moveToNonProcessed(File file) {
+        moveFile(file, "C:\\Teste\\NaoProcessado");
+    }
+
+    private void moveFile(File file, String destinationPath) {
+        File destDir = new File(destinationPath);
+        if (!destDir.exists()) {
+            destDir.mkdirs();
         }
-        String[] parts = headerLine.split("=");
-        if (parts.length != 2) {
-            return false;
-        }
+        File newFile = new File(destinationPath + "\\" + file.getName());
         try {
-            Integer.parseInt(parts[1].trim());
-        } catch (NumberFormatException e) {
-            return false;
-        }
-        return true;
-    }
-
-    public void moveFileToProcessed(String filePath) {
-        moveFile(filePath, "C:\\Teste\\Processado");
-    }
-
-    public void moveFileToNaoProcessado(String filePath) {
-        moveFile(filePath, "C:\\Teste\\NaoProcessado");
-    }
-
-    private void moveFile(String filePath, String targetDir) {
-        Path sourcePath = Path.of(filePath);
-        Path targetPath = Path.of(targetDir + "\\" + new File(filePath).getName());
-
-        for (int attempt = 0; attempt < 10; attempt++) {
-            try (RandomAccessFile raf = new RandomAccessFile(filePath, "rw")) {
-                FileChannel channel = raf.getChannel();
-                try (FileLock lock = channel.tryLock()) {
-                    if (lock != null) {
-                        Files.move(sourcePath, targetPath, StandardCopyOption.REPLACE_EXISTING);
-                        System.out.println("Arquivo movido para " + targetDir);
-                        return;
-                    }
-                }
-            } catch (IOException e) {
-                System.out.println("Tentativa " + (attempt + 1) + " de mover o arquivo falhou: " + e.getMessage());
-                try {
-                    Thread.sleep(500); // Aguarda 500 ms antes de tentar novamente
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt(); // Restaura o estado de interrupção
-                    System.out.println("Erro ao pausar a thread: " + ie.getMessage());
-                }
-            }
-        }
-
-        // Tenta copiar o arquivo após várias tentativas de mover
-        try {
-            Files.copy(sourcePath, targetPath, StandardCopyOption.REPLACE_EXISTING);
-            System.out.println("Arquivo copiado para " + targetDir);
-
-            // Tentativas para excluir o arquivo original
-            for (int attempt = 0; attempt < 5; attempt++) {
-                File originalFile = new File(filePath);
-                if (originalFile.delete()) {
-                    System.out.println("Arquivo original excluído: " + filePath);
-                    return;
-                } else {
-                    System.out.println("Falha ao excluir o arquivo original: " + filePath + ". Tentativa " + (attempt + 1));
-                    try {
-                        Thread.sleep(1000); // Aguarda 1 segundo antes da próxima tentativa
-                    } catch (InterruptedException ie) {
-                        Thread.currentThread().interrupt(); // Restaura o estado de interrupção
-                        System.out.println("Erro ao pausar a thread: " + ie.getMessage());
-                    }
-                }
-            }
+            Files.move(file.toPath(), newFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            System.out.println("Arquivo " + file.getName() + " movido para " + destinationPath);
         } catch (IOException e) {
-            System.out.println("Erro ao copiar o arquivo para " + targetDir + ": " + e.getMessage());
-        }
-
-        System.out.println("Erro: não foi possível mover o arquivo para " + targetDir + " após várias tentativas.");
-    }
-
-    private boolean isFileInUse(String filePath) {
-        File file = new File(filePath);
-        try (RandomAccessFile randomAccessFile = new RandomAccessFile(file, "rw")) {
-            randomAccessFile.writeBytes(""); // Tenta escrever algo no arquivo
-            return false; // Se a escrita foi bem-sucedida, o arquivo não está em uso
-        } catch (IOException e) {
-            return true; // O arquivo está em uso
+            System.out.println("Erro ao mover o arquivo " + file.getName() + ": " + e.getMessage());
         }
     }
 }
