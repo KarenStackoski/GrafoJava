@@ -71,9 +71,9 @@ public class GrafoManager {
     public void validateRouteFiles(String directoryPath) {
         File dir = new File(directoryPath);
         File[] files = dir.listFiles((d, name) -> name.startsWith("rota") && name.endsWith(".txt"));
-
-        if (files != null) {
+        if (files != null && files.length > 0) {
             for (File file : files) {
+            	System.out.println(file);
                 boolean isValid = validateRouteFile(file);
                 if (isValid) {
                     fileManager.moveToProcessed(file); // Move para Processados se válido
@@ -140,11 +140,11 @@ public class GrafoManager {
     }
 
     private boolean isConnectionLineValid(String line) {
-        return line.matches("01[a-zA-Z]{1,2}=[a-zA-Z]{1,2}"); // Exemplo: 01NO=ND
+        return line.matches("01\\d{1,2}=\\d{1,2}"); // Exemplo: 01NO=ND
     }
 
     private boolean isWeightLineValid(String line) {
-        return line.matches("02[a-zA-Z]{1,2};[a-zA-Z]{1,2}=\\d{4}"); // Exemplo: 02NO;ND=P
+        return line.matches("02\\d{1,2};\\d{1,2}=\\d{4}"); // Exemplo: 02NO;ND=P
     }
 
     private boolean isTrailerValid(String trailer) {

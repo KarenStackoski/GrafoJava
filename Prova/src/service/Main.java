@@ -10,6 +10,8 @@ public class Main {
 
         // Processar o arquivo de configuração e, em seguida, validar os arquivos de rota
         String configFilePath = "C:\\Teste\\Configuracao\\config.txt";
-        grafoManager.processRouteFiles(configFilePath);
+        //grafoManager.processRouteFiles(configFilePath);
+        String directoryPath = "C:\\Teste\\";
+        grafoManager.validateRouteFiles(directoryPath);
     }
 }
